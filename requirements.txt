@@ -1,0 +1,12 @@
+django
+djangorestframework
+psycopg2-binary
+numpy
+pandas
+scikit-learn
+tensorflow
+torch
+transformers
+spacy
+celery
+requests

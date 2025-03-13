@@ -1,0 +1,249 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord Marketing - Advanced</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .navbar-brand, .nav-link {
+      font-weight: 600;
+    }
+    .card {
+      margin-bottom: 20px;
+    }
+    .card-header {
+      background-color: #007bff;
+      color: white;
+    }
+    .upload-section {
+      border: 2px dashed #007bff;
+      border-radius: 5px;
+      padding: 20px;
+      text-align: center;
+      background-color: #e9f7fe;
+      transition: background-color 0.3s ease;
+    }
+    .upload-section:hover {
+      background-color: #d0ebff;
+    }
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1055;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{% url 'dashboard' %}">Marketing ML Dashboard</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navbarNav" aria-controls="navbarNav"
+              aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link active" href="{% url 'dashboard' %}">Accueil</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">Analyse Prédictive</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">Campagnes Personnalisées</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">Sentiments Réseaux Sociaux</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'chatbot' %}">Chatbot</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container my-4">
+    <!-- KPI and Charts Row -->
+    <div class="row">
+      <!-- KPI Card -->
+      <div class="col-md-4">
+        <div class="card shadow">
+          <div class="card-header">
+            <h5 class="mb-0">Chiffres Clés</h5>
+          </div>
+          <div class="card-body">
+            <h3 class="card-title" id="kpiValue">1,250</h3>
+            <p class="card-text">Clients actifs ce mois</p>
+          </div>
+        </div>
+      </div>
+      <!-- Predictive Analysis Chart -->
+      <div class="col-md-8">
+        <div class="card shadow">
+          <div class="card-header">
+            <h5 class="mb-0">Prédiction des ventes</h5>
+          </div>
+          <div class="card-body">
+            <canvas id="predictiveChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second Row: Sentiment and Interaction Metrics -->
+    <div class="row my-4">
+      <!-- Sentiment Analysis Chart -->
+      <div class="col-md-6">
+        <div class="card shadow">
+          <div class="card-header">
+            <h5 class="mb-0">Sentiments sur les réseaux sociaux</h5>
+          </div>
+          <div class="card-body">
+            <canvas id="sentimentChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Chatbot Interaction Metrics -->
+      <div class="col-md-6">
+        <div class="card shadow">
+          <div class="card-header">
+            <h5 class="mb-0">Interactions Chatbot</h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-group">
+              <li class="list-group-item">Demandes traitées : <strong id="requestsCount">340</strong></li>
+              <li class="list-group-item">Satisfaction utilisateur : <strong id="satisfactionRate">89%</strong></li>
+              <li class="list-group-item">Conversions réalisées : <strong id="conversionsCount">45</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Upload Section -->
+    <div class="row">
+      <div class="col">
+        <div class="card shadow">
+          <div class="card-header">
+            <h5 class="mb-0">Téléversement de fichiers pour analyse</h5>
+          </div>
+          <div class="card-body">
+            <form id="uploadForm" method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="mb-3 upload-section">
+                <label for="fileUpload" class="form-label">Choisissez un fichier (CSV, PDF, Excel, etc.)</label>
+                <input type="file" class="form-control" id="fileUpload" name="uploaded_file" accept=".csv,.pdf,.xls,.xlsx,application/pdf">
+                <div id="fileName" class="mt-2 text-muted"></div>
+              </div>
+              <button type="submit" class="btn btn-success">Envoyer</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container for file upload notification -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="uploadToast" class="toast align-items-center text-bg-info border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          Fichier sélectionné : <span id="toastFileName"></span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Chart.js Scripts -->
+  <script>
+    // Graphique de prédiction des ventes
+    const predictiveCtx = document.getElementById('predictiveChart').getContext('2d');
+    const predictiveChart = new Chart(predictiveCtx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul'],
+        datasets: [{
+          label: 'Ventes prédites',
+          data: [120, 150, 170, 160, 190, 210, 230],
+          backgroundColor: 'rgba(0,123,255,0.3)',
+          borderColor: 'rgba(0,123,255,1)',
+          borderWidth: 2,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: {
+          duration: 2000,
+          easing: 'easeInOutQuad'
+        },
+        plugins: {
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        }
+      }
+    });
+
+    // Graphique des sentiments sur les réseaux sociaux
+    const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+    const sentimentChart = new Chart(sentimentCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Positif', 'Neutre', 'Négatif'],
+        datasets: [{
+          data: [55, 30, 15],
+          backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: {
+          duration: 1500,
+          easing: 'easeOutBounce'
+        }
+      }
+    });
+
+    // Affichage du nom du fichier uploadé et toast notification
+    const fileUploadInput = document.getElementById('fileUpload');
+    const fileNameDisplay = document.getElementById('fileName');
+    const toastFileName = document.getElementById('toastFileName');
+    const uploadToastElement = document.getElementById('uploadToast');
+    const uploadToast = new bootstrap.Toast(uploadToastElement);
+
+    fileUploadInput.addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+        fileNameDisplay.textContent = "Fichier sélectionné: " + this.files[0].name;
+        toastFileName.textContent = this.files[0].name;
+        uploadToast.show();
+      } else {
+        fileNameDisplay.textContent = "";
+      }
+    });
+
+    // Simulation d'actualisation des KPI toutes les 10 secondes (pour démonstration)
+    setInterval(function() {
+      // Ici, vous pouvez utiliser une requête AJAX pour mettre à jour les KPIs depuis le serveur
+      const newCustomers = Math.floor(1000 + Math.random() * 500);
+      document.getElementById('kpiValue').textContent = newCustomers;
+    }, 10000);
+
+    // Simulation d'actualisation dynamique des graphiques (optionnel)
+    // Exemple : mettre à jour les données du graphique de prédiction toutes les 15 secondes
+    setInterval(function() {
+      predictiveChart.data.datasets[0].data = predictiveChart.data.datasets[0].data.map(value => value + Math.floor(Math.random() * 20 - 10));
+      predictiveChart.update();
+    }, 15000);
+  </script>
+</body>
+</html>
